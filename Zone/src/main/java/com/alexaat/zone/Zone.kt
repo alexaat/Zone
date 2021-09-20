@@ -21,7 +21,8 @@ class Zone private constructor(
     val fillColorInactive: Int,
     val context: Context,
     val map: GoogleMap,
-    val onCloseListener: ((Zone)->Unit)?
+    val onCloseListener: ((Zone)->Unit)?,
+    val onResizeCompleteListener: ((Zone)->Unit)?
 ) {
 
     private var marker: Marker? = null
@@ -44,7 +45,8 @@ class Zone private constructor(
         var fillColor: Int = 0x44FF0000,
         var borderColorInactive: Int =  0x00000000,
         var fillColorInactive: Int = 0x11FF0000,
-        var onCloseListener: ((Zone)->Unit)? = null
+        var onCloseListener: ((Zone)->Unit)? = null,
+        var onResizeCompleteListener: ((Zone)->Unit)? = null
     ){
         fun title(title: String) = apply { this.title = title }
         fun location(location: LatLng) = apply { this.location = location }
@@ -55,6 +57,7 @@ class Zone private constructor(
         fun borderColorInactive(borderColorInactive: Int) = apply { this.borderColorInactive = borderColorInactive }
         fun fillColorInactive(fillColorInactive: Int) = apply { this.fillColorInactive = fillColorInactive }
         fun onCloseListener(onCloseListener:(Zone)->Unit) = apply { this.onCloseListener = onCloseListener }
+        fun onResizeCompleteListener(onResizeCompleteListener:(Zone)->Unit) = apply { this.onResizeCompleteListener = onResizeCompleteListener }
         fun build(context: Context, map: GoogleMap):Zone{
             return Zone(
                 title = title,
@@ -67,12 +70,13 @@ class Zone private constructor(
                 fillColorInactive = fillColorInactive,
                 context = context,
                 map = map,
-                onCloseListener = onCloseListener)
+                onCloseListener = onCloseListener,
+                onResizeCompleteListener = onResizeCompleteListener)
         }
     }
 
     fun showOnMap(){
-        zonas.forEach {
+        zones.forEach {
             it.isSelected = false
             it.marker?.remove()
             it.circle?.remove()
@@ -80,8 +84,8 @@ class Zone private constructor(
             it.markerClose?.remove()
         }
         this.isSelected = true
-        zonas.add(this)
-        zonas.forEach {
+        zones.add(this)
+        zones.forEach {
             it.addMarker()
             it.addCircle()
             if(it.isSelected){
@@ -171,12 +175,12 @@ class Zone private constructor(
         private const val minimumRadius = 5.0
         private const val closeMarkerHeading = 45.0
 
-        private var zonas = mutableListOf<Zone>()
+        private var zones = mutableListOf<Zone>()
         private fun setListeners(map:GoogleMap){
 
             map.setOnCameraMoveListener{
-                val zona = zonas.find { it.isSelected }
-                zona?.let{
+                val zone = zones.find { it.isSelected }
+                zone?.let{
                     it.apply{
                         markerClose?.remove()
                         markerResize?.remove()
@@ -189,19 +193,19 @@ class Zone private constructor(
             map.setOnMarkerClickListener { marker ->
                 marker?.let{
                     if(marker.title.contains(closeMarkerTitleSuffix)){
-                        val zona = zonas.find { it.title == marker.title.removeSuffix(closeMarkerTitleSuffix) }
-                        zona?.onCloseListener?.let{
-                            it.invoke(zona)
+                        val zone = zones.find { it.title == marker.title.removeSuffix(closeMarkerTitleSuffix) }
+                        zone?.onCloseListener?.let{
+                            it.invoke(zone)
                             return@setOnMarkerClickListener true
                         }
-                        zona?.let{
+                        zone?.let{
                             remove(it)
                         }
 
                     }
-                    val zona = zonas.find { it.title == marker.title}
-                    zona?.setSelected()
-                    zona?.marker?.showInfoWindow()
+                    val zone = zones.find { it.title == marker.title}
+                    zone?.setSelected()
+                    zone?.marker?.showInfoWindow()
 
                 }
                 true
@@ -211,8 +215,8 @@ class Zone private constructor(
                 override fun onMarkerDragStart(marker: Marker?) {
                     marker?.let{ m->
                         if(!m.title.contains(resizeMarkerTitleSuffix)){
-                            val selectedZona = zonas.find{it.isSelected}
-                            selectedZona?.let{
+                            val selectedZone = zones.find{it.isSelected}
+                            selectedZone?.let{
                                 it.isSelected = false
                                 it.circle?.remove()
                                 it.markerClose?.remove()
@@ -225,8 +229,8 @@ class Zone private constructor(
 
 
 
-                    val zona = zonas.find { it.title == marker?.title?.removeSuffix(resizeMarkerTitleSuffix) }
-                    zona?.isSelected = true
+                    val zone = zones.find { it.title == marker?.title?.removeSuffix(resizeMarkerTitleSuffix) }
+                    zone?.isSelected = true
 
                     updateMarkers(marker)
 
@@ -239,6 +243,7 @@ class Zone private constructor(
                 override fun onMarkerDragEnd(marker: Marker?) {
                     updateMarkers(marker)
                     checkResizeMarkerHeadingOverlap(marker)
+                    executeOnResizeCompleteListener(marker)
                 }
 
             }
@@ -253,12 +258,12 @@ class Zone private constructor(
             zone.circle?.remove()
             zone.markerResize?.remove()
             zone.markerClose?.remove()
-            zonas.remove(zone)
+            zones.remove(zone)
         }
 
         private fun updateMarkers(marker: Marker?){
             if(marker!=null){
-                val zona = zonas.find { it.title==marker.title.removeSuffix(resizeMarkerTitleSuffix) }
+                val zona = zones.find { it.title==marker.title.removeSuffix(resizeMarkerTitleSuffix) }
                 zona?.let{
                     if(marker.title.contains(resizeMarkerTitleSuffix)){
                         var r = SphericalUtil.computeDistanceBetween(it.location, marker.position)
@@ -294,7 +299,7 @@ class Zone private constructor(
         }
         private fun checkResizeMarkerHeadingOverlap(marker: Marker?){
             if(marker!=null){
-                val zona = zonas.find { it.title==marker.title.removeSuffix(resizeMarkerTitleSuffix) }
+                val zona = zones.find { it.title==marker.title.removeSuffix(resizeMarkerTitleSuffix) }
                 zona?.let{
                     if(marker.title.contains(resizeMarkerTitleSuffix)){
                         var heading = SphericalUtil.computeHeading(it.location, marker.position)
@@ -319,7 +324,7 @@ class Zone private constructor(
         private fun setSelected(zone: Zone){
 
             zone?.let{ z->
-                zonas.forEach {
+                zones.forEach {
                     it.isSelected = false
                     it.marker?.remove()
                     it.circle?.remove()
@@ -327,13 +332,21 @@ class Zone private constructor(
                     it.markerClose?.remove()
                 }
                 z.isSelected = true
-                zonas.forEach {
+                zones.forEach {
                     it.addMarker()
                     it.addCircle()
                     if(it.isSelected){
                         it.addResizeMarker()
                         it.addCloseMarker()
                     }
+                }
+            }
+        }
+        private fun executeOnResizeCompleteListener(marker: Marker?){
+            marker?.let{
+                if(it.title.contains(resizeMarkerTitleSuffix)){
+                    val zone = zones.find { it.title==marker.title.removeSuffix(resizeMarkerTitleSuffix)}
+                    zone?.onResizeCompleteListener?.invoke(zone)
                 }
             }
         }
