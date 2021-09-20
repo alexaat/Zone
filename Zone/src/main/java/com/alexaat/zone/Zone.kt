@@ -22,7 +22,8 @@ class Zone private constructor(
     val context: Context,
     val map: GoogleMap,
     val onCloseListener: ((Zone)->Unit)?,
-    val onResizeCompleteListener: ((Zone)->Unit)?
+    val onResizeCompleteListener: ((Zone)->Unit)?,
+    val onDragCompleteListener: ((Zone)->Unit)?
 ) {
 
     private var marker: Marker? = null
@@ -46,7 +47,8 @@ class Zone private constructor(
         var borderColorInactive: Int =  0x00000000,
         var fillColorInactive: Int = 0x11FF0000,
         var onCloseListener: ((Zone)->Unit)? = null,
-        var onResizeCompleteListener: ((Zone)->Unit)? = null
+        var onResizeCompleteListener: ((Zone)->Unit)? = null,
+        var onDragCompleteListener: ((Zone)->Unit)? = null
     ){
         fun title(title: String) = apply { this.title = title }
         fun location(location: LatLng) = apply { this.location = location }
@@ -58,6 +60,7 @@ class Zone private constructor(
         fun fillColorInactive(fillColorInactive: Int) = apply { this.fillColorInactive = fillColorInactive }
         fun onCloseListener(onCloseListener:(Zone)->Unit) = apply { this.onCloseListener = onCloseListener }
         fun onResizeCompleteListener(onResizeCompleteListener:(Zone)->Unit) = apply { this.onResizeCompleteListener = onResizeCompleteListener }
+        fun onDragCompleteListener(onDragCompleteListener:(Zone)->Unit) = apply { this.onDragCompleteListener = onDragCompleteListener }
         fun build(context: Context, map: GoogleMap):Zone{
             return Zone(
                 title = title,
@@ -71,7 +74,8 @@ class Zone private constructor(
                 context = context,
                 map = map,
                 onCloseListener = onCloseListener,
-                onResizeCompleteListener = onResizeCompleteListener)
+                onResizeCompleteListener = onResizeCompleteListener,
+                onDragCompleteListener = onDragCompleteListener)
         }
     }
 
@@ -244,6 +248,7 @@ class Zone private constructor(
                     updateMarkers(marker)
                     checkResizeMarkerHeadingOverlap(marker)
                     executeOnResizeCompleteListener(marker)
+                    executeOnDragCompleteListener(marker)
                 }
 
             }
@@ -263,14 +268,14 @@ class Zone private constructor(
 
         private fun updateMarkers(marker: Marker?){
             if(marker!=null){
-                val zona = zones.find { it.title==marker.title.removeSuffix(resizeMarkerTitleSuffix) }
-                zona?.let{
+                val zone = zones.find { it.title==marker.title.removeSuffix(resizeMarkerTitleSuffix) }
+                zone?.let{
                     if(marker.title.contains(resizeMarkerTitleSuffix)){
                         var r = SphericalUtil.computeDistanceBetween(it.location, marker.position)
                         if (r < minimumRadius)
                             r = minimumRadius
 
-                        val heading = SphericalUtil.computeHeading(it.location, marker.position) - zona.map.cameraPosition.bearing
+                        val heading = SphericalUtil.computeHeading(it.location, marker.position) - zone.map.cameraPosition.bearing
                         val rotation = heading.toFloat() - defaultResizeMarkerHeading.toFloat()
 
                         it.apply {
@@ -299,8 +304,8 @@ class Zone private constructor(
         }
         private fun checkResizeMarkerHeadingOverlap(marker: Marker?){
             if(marker!=null){
-                val zona = zones.find { it.title==marker.title.removeSuffix(resizeMarkerTitleSuffix) }
-                zona?.let{
+                val zone = zones.find { it.title==marker.title.removeSuffix(resizeMarkerTitleSuffix) }
+                zone?.let{
                     if(marker.title.contains(resizeMarkerTitleSuffix)){
                         var heading = SphericalUtil.computeHeading(it.location, marker.position)
                         val closeMarkerHeading = SphericalUtil.computeHeading(it.location, it.markerClose?.position)
@@ -345,8 +350,16 @@ class Zone private constructor(
         private fun executeOnResizeCompleteListener(marker: Marker?){
             marker?.let{
                 if(it.title.contains(resizeMarkerTitleSuffix)){
-                    val zone = zones.find { it.title==marker.title.removeSuffix(resizeMarkerTitleSuffix)}
+                    val zone = zones.find {z -> z.title==marker.title.removeSuffix(resizeMarkerTitleSuffix)}
                     zone?.onResizeCompleteListener?.invoke(zone)
+                }
+            }
+        }
+        private fun executeOnDragCompleteListener(marker: Marker?){
+            marker?.let{
+                if(!it.title.contains(resizeMarkerTitleSuffix) && !it.title.contains(closeMarkerTitleSuffix)){
+                    val zone = zones.find { z -> z.title==marker.title.removeSuffix(resizeMarkerTitleSuffix)}
+                    zone?.onDragCompleteListener?.invoke(zone)
                 }
             }
         }
