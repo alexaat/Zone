@@ -23,7 +23,10 @@ class Zone private constructor(
     val map: GoogleMap,
     val onCloseListener: ((Zone)->Unit)?,
     val onResizeCompleteListener: ((Zone)->Unit)?,
-    val onDragCompleteListener: ((Zone)->Unit)?
+    val onDragCompleteListener: ((Zone)->Unit)?,
+    val icon: BitmapDescriptor?
+
+
 ) {
 
     private var marker: Marker? = null
@@ -48,7 +51,8 @@ class Zone private constructor(
         var fillColorInactive: Int = 0x11FF0000,
         var onCloseListener: ((Zone)->Unit)? = null,
         var onResizeCompleteListener: ((Zone)->Unit)? = null,
-        var onDragCompleteListener: ((Zone)->Unit)? = null
+        var onDragCompleteListener: ((Zone)->Unit)? = null,
+        var icon: BitmapDescriptor? = null
     ){
         fun title(title: String) = apply { this.title = title }
         fun location(location: LatLng) = apply { this.location = location }
@@ -61,6 +65,7 @@ class Zone private constructor(
         fun onCloseListener(onCloseListener:(Zone)->Unit) = apply { this.onCloseListener = onCloseListener }
         fun onResizeCompleteListener(onResizeCompleteListener:(Zone)->Unit) = apply { this.onResizeCompleteListener = onResizeCompleteListener }
         fun onDragCompleteListener(onDragCompleteListener:(Zone)->Unit) = apply { this.onDragCompleteListener = onDragCompleteListener }
+        fun icon(icon: BitmapDescriptor?) = apply{this.icon = icon}
         fun build(context: Context, map: GoogleMap):Zone{
             return Zone(
                 title = title,
@@ -75,7 +80,8 @@ class Zone private constructor(
                 map = map,
                 onCloseListener = onCloseListener,
                 onResizeCompleteListener = onResizeCompleteListener,
-                onDragCompleteListener = onDragCompleteListener)
+                onDragCompleteListener = onDragCompleteListener,
+                icon = icon)
         }
     }
 
@@ -111,6 +117,8 @@ class Zone private constructor(
             .position(location)
             .title(title)
             .draggable(true)
+            .icon(icon)
+
         marker = map.addMarker(markerOptions)
     }
     private fun addCircle(){
@@ -162,14 +170,7 @@ class Zone private constructor(
 
     }
 
-    private fun bitmapDescriptorFromVector(context: Context, vectorResId: Int): BitmapDescriptor? {
-        return ContextCompat.getDrawable(context, vectorResId)?.run {
-            setBounds(0, 0, intrinsicWidth, intrinsicHeight)
-            val bitmap = Bitmap.createBitmap(intrinsicWidth, intrinsicHeight, Bitmap.Config.ARGB_8888)
-            draw(Canvas(bitmap))
-            BitmapDescriptorFactory.fromBitmap(bitmap)
-        }
-    }
+
 
     companion object{
         private const val defaultResizeMarkerHeading = 135.0
@@ -180,6 +181,20 @@ class Zone private constructor(
         private const val closeMarkerHeading = 45.0
 
         private var zones = mutableListOf<Zone>()
+
+        fun bitmapDescriptorFromVector(context: Context, vectorResId: Int): BitmapDescriptor? {
+            return ContextCompat.getDrawable(context, vectorResId)?.run {
+                setBounds(0, 0, intrinsicWidth, intrinsicHeight)
+                val bitmap = Bitmap.createBitmap(intrinsicWidth, intrinsicHeight, Bitmap.Config.ARGB_8888)
+                draw(Canvas(bitmap))
+                BitmapDescriptorFactory.fromBitmap(bitmap)
+            }
+        }
+
+        fun bitmapDescriptorFromImage(resId: Int): BitmapDescriptor? {
+            return BitmapDescriptorFactory.fromResource(resId)
+        }
+
         private fun setListeners(map:GoogleMap){
 
             map.setOnCameraMoveListener{
@@ -250,15 +265,11 @@ class Zone private constructor(
                     executeOnResizeCompleteListener(marker)
                     executeOnDragCompleteListener(marker)
                 }
-
             }
-
-
             )
         }
 
         private fun remove(zone: Zone){
-
             zone.marker?.remove()
             zone.circle?.remove()
             zone.markerResize?.remove()
@@ -364,6 +375,5 @@ class Zone private constructor(
             }
         }
     }
-
 
 }
