@@ -31,6 +31,7 @@ Add library to project:
 
 
 Implementation 1:
+         
            val zone =  Zone.Builder()
                 .title("Home")
                 .location(LatLng(-33.8597747,151.2218797))
@@ -51,6 +52,7 @@ Implementation 1:
                 .icon(Zone.bitmapDescriptorFromVector(applicationContext,R.drawable.ic_home))
                 .build(applicationContext, map)
                 .showOnMap()
+         
 
 
 
