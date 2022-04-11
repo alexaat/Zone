@@ -13,6 +13,18 @@ Add library to project:
                 maven { url 'https://jitpack.io' }
             }
         }
+        
+        Or in settings.gradle 
+        
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+                repositories {
+                   google()
+                   mavenCentral()
+                   maven { url 'https://jitpack.io' }
+                }
+        }
+        
     Step 2: Add the dependency
         dependencies {
               implementation 'com.github.alexaat:Zone:1.1.0'
