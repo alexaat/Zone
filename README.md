@@ -57,7 +57,8 @@ Implementation 1:
 
 
 Implementation 2:
-             Zone.Builder()
+
+  Zone.Builder()
             .title("Work")
             .location(LatLng(-33.8567602,151.2152432))
             .radius(60.0)
@@ -74,3 +75,5 @@ Implementation 2:
             .icon(Zone.bitmapDescriptorFromVector(applicationContext,R.drawable.ic_work))
             .build(applicationContext, map)
             .showOnMap()
+
+           
