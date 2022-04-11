@@ -53,6 +53,7 @@ Implementation 1:
                 .showOnMap()
 
 
+
 Implementation 2:
              Zone.Builder()
             .title("Work")
@@ -71,5 +72,3 @@ Implementation 2:
             .icon(Zone.bitmapDescriptorFromVector(applicationContext,R.drawable.ic_work))
             .build(applicationContext, map)
             .showOnMap()
-
-
